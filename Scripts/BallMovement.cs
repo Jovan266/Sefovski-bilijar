@@ -9,6 +9,7 @@ public class BallMovement : MonoBehaviour
     public float strength = 1000;
     public float distanceThreshold;
     public LayerMask hitMask;
+    public GameObject fake;
     bool wasStatic = false;
 
     // Start is called before the first frame update
@@ -36,23 +37,32 @@ public class BallMovement : MonoBehaviour
             if (!GameManager.instance.inHole)
             {
                 GameManager.instance.turn = (GameManager.instance.turn == 1 ? 2 : 1);
-                Debug.Log(GameManager.instance.turn);
+                UIManager.instance.SetTurn(GameManager.instance.turn);
+            }
+            if(GameManager.instance.firstBallTurn == -1 && GameManager.instance.firstBallIn)
+            {
+                GameManager.instance.foul = true;
             }
             if (GameManager.instance.foul)
             {
+                UIManager.instance.Foul();
                 if (lastTurn == GameManager.instance.turn)
                 {
                     GameManager.instance.turn = (GameManager.instance.turn == 1 ? 2 : 1);
+                    UIManager.instance.SetTurn(GameManager.instance.turn);
                 }
                 GameManager.instance.wasFoul = true;
+                rb.velocity = new Vector3(0f, 0f, 0f);
+                transform.position = new Vector3(100f, 100f, 100f);
                 GameManager.instance.foul = false;
             }
             GameManager.instance.inHole = false;
+            GameManager.instance.firstBallTurn = -1;
         }
         wasStatic = isStatic;
         // Crtam UI za jacinu udarca
         bool actualHit = Input.GetMouseButton(0) && distance > 0.9f && isStatic;
-        if (actualHit)
+        if (actualHit && !GameManager.instance.wasFoul)
         {
             hitStrengthRenderer.enabled = true;
             hitStrengthRenderer.SetPosition(0, transform.position + (mousePosition - transform.position).normalized * 0.5f);
@@ -70,7 +80,7 @@ public class BallMovement : MonoBehaviour
             hitStrengthRenderer.enabled = false;
         }
         // Crtam UI za smer udarca
-        if (actualHit)
+        if (actualHit && !GameManager.instance.wasFoul)
         {
             aimRenderer.enabled = true;
             aimRenderer.SetPosition(0, transform.position);
@@ -85,21 +95,69 @@ public class BallMovement : MonoBehaviour
         {
             aimRenderer.enabled = false;
         }
+        if (GameManager.instance.wasFoul)
+        {
+            fake.SetActive(true);
+            fake.transform.position = mousePosition;
+        }
+        else
+        {
+            fake.SetActive(false);
+        }
         // Ostalo
         if (Input.GetMouseButtonUp(0) && isStatic)
         {
             if (GameManager.instance.wasFoul)
             {
-                GameManager.instance.wasFoul = false;
-                transform.position = mousePosition;
+                if (Mathf.Abs(fake.transform.position.x) < 10f && Mathf.Abs(fake.transform.position.y) < 5f)
+                {
+                    GameManager.instance.wasFoul = false;
+                    transform.position = mousePosition;
+                }
             }
             else if (distance < distanceThreshold)
             {
                 rb.AddForce((transform.position - mousePosition) * strength);
+                GetComponent<AudioSource>().Play();
             }
             else
             {
                 rb.AddForce((transform.position - mousePosition).normalized * distanceThreshold * strength);
+                GetComponent<AudioSource>().Play();
+            }
+            
+        }
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        if(collision.gameObject.tag == "Ball")
+        {
+            if(GameManager.instance.firstBallTurn == -1 && GameManager.instance.firstBallIn)
+            {
+                int number = int.Parse(collision.gameObject.GetComponent<SpriteRenderer>().sprite.name.Substring(4));
+                GameManager.instance.firstBallTurn = GameManager.instance.balls[number-1].GetComponent<Balls>().player;
+                if(GameManager.instance.firstBallTurn != GameManager.instance.turn)
+                {
+                    GameManager.instance.foul = true;
+                }
+            }
+        }
+        if (collision.gameObject.tag == "Wall")
+        {
+
+            Rigidbody2D rb = GetComponent<Rigidbody2D>();
+            Vector3 velocity = rb.velocity;
+            velocity.x = Mathf.Abs(velocity.x);
+            velocity.y = Mathf.Abs(velocity.y);
+            velocity.z = 0f;
+            if (transform.position.y < -4.3f || transform.position.x > 9.2f)
+            {
+                rb.AddForce(Vector2.Perpendicular(velocity).normalized * 5f);
+            }
+            else
+            {
+                rb.AddForce(-Vector2.Perpendicular(velocity).normalized * 5f);
             }
         }
     }

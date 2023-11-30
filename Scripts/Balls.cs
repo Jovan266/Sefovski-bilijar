@@ -37,6 +37,14 @@ public class Balls : MonoBehaviour
                 rb.AddForce(-Vector2.Perpendicular(velocity).normalized * factor);
             }
         }
+
+        if (collision.gameObject.tag == "Ball")
+        {
+            if (int.Parse(collision.gameObject.GetComponent<SpriteRenderer>().sprite.name.Substring(4)) < int.Parse(GetComponent<SpriteRenderer>().sprite.name.Substring(4)))
+            {
+                GetComponent<AudioSource>().Play();
+            }
+        }
     }
 
     //Jebeni bag koji nam je oduzeo 2 dana

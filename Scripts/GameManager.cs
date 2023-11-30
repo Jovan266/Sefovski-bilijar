@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.VFX;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
+    public static int winner;
     public float drag;
     public float angularDrag;
     public float mass;
@@ -13,18 +14,20 @@ public class GameManager : MonoBehaviour
     public float ballSize;
     public static GameManager instance;
     
-    public int turn = 1;
+    public int turn = 2;
     public bool foul = false;
     public bool wasFoul = false;
     public bool inHole = false;
     public int firstBallTurn = -1;
     public bool whiteInHole = false;
+    public bool white = true;
 
     public bool firstBallIn = false;
-    GameObject[] balls;
+    public GameObject[] balls;
 
     private void Awake()
     {
+        DontDestroyOnLoad(this);
         if (instance == null)
         {
             instance = this;
@@ -77,5 +80,11 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         
+    }
+
+    public void Over(int win)
+    {
+        winner = win;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex + 1);
     }
 }
